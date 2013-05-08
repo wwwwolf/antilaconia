@@ -1,0 +1,27 @@
+## Antilaconia - across the bay from the laconic StatusNet
+
+Antilaconia is a very minimal microblogging engine, which is intended
+to be kinda similar to StatusNet, except:
+
+1. it doesn't support any of the fancy features,
+2. it's more geared for personal websites and not big public sites, and
+3. it uses Ruby platform.
+
+The idea is that you can just install Ruby on a webhost, pull in a few gems,
+and stick this in as a CGI script.
+
+**Note that the thing just doesn't work at the moment.** It creates the
+"data model", if it can be called that at the moment, and that's it.
+It's mostly copypaste from tutorial at the time. Needless to say,
+DON'T USE THIS. =)
+
+### Licence
+
+This software is distributed under [GNU AGPL 3.0 or later](https://www.gnu.org/licenses/agpl.html).
+
+### Requirements
+
+* Ruby 1.9.x
+* [Camping](http://camping.io/) microframework (gem install camping) and its dependencies
+* Some kinda storage engine (SQLite used by default)
+
