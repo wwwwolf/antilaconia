@@ -21,7 +21,34 @@ This software is distributed under [GNU AGPL 3.0 or later](https://www.gnu.org/l
 
 ### Requirements
 
-* Ruby 1.9.x
-* [Camping](http://camping.io/) microframework (gem install camping) and its dependencies
-* Some kinda storage engine (SQLite used by default)
+Aside of Ruby 1.9.x, you need at least this:
+
+    # gem install camping bcrypt-ruby
+
+I'm developing this on SQLite storage engine. Can't vounch for
+anything else at all, but since this is built on top of Active Record,
+other databases ought to work too.
+
+### Installation
+
+Edit the config.ru file for pertinent, mostly self-explanatory settings.
+
+For some reason, camping console doesn't want to read `config.ru`'s database
+settings. You may want to set up a link to your database manually.
+
+    $ ln -s /wherever/lies/your/database.sqlite ~/.camping.db
+
+Set up the user account.
+
+    $ camping -C config.ru
+    ...
+    irb> u = Antilaconia::Models::User.new
+    irb> u.username = 'whoeveryouare'
+    irb> u.password = 'wHaTeV3rYouRpAssW0rD1s'
+    irb> u.save
+    irb> exit
+
+You may now remove your link.
+
+    $ rm ~/.camping.db
 

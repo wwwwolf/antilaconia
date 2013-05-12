@@ -20,16 +20,36 @@
 ######################################################################
 
 require 'rubygems'
-gem     'camping'
+gem     'camping',     '>= 2.1'
+gem     'bcrypt-ruby', '>= 3.0'
 
 require 'camping'
+require 'camping/session'
+require 'bcrypt'
 
 Camping.goes :Antilaconia
 
+module Antilaconia
+  set :secret, Antilaconia::Settings::CampingSessionSecret
+  include Camping::Session
+end
+
 module Antilaconia::Models
   class User < Base
+    include BCrypt
     has_many :posts
     validates_uniqueness_of :username
+
+    def password
+      @password ||= Password.new(pwhash)
+    end
+    def password=(new_password)
+      @password = Password.create(new_password)
+      self.pwhash = @password
+    end
+    def password_valid?(password_to_test)
+      return (password == password_to_test)
+    end
   end
   class Post < Base
     belongs_to :user
@@ -37,13 +57,13 @@ module Antilaconia::Models
   class BasicFields < V 1.0
     def self.up
       create_table User.table_name do |t|
-        t.string :username, :limit => 40
-        t.string :password_hash, :limit => 200
-        t.string :password_salt, :limit => 200
+        t.string      :username,      :limit => 40
+        t.string      :pwhash,        :limit => 100
       end
       create_table Post.table_name do |t|
-        t.references :user
-        t.string :text, :limit => 140
+        t.references  :user
+        t.string      :mtext,         :limit => 140
+        t.text        :body,
         t.timestamps
       end
     end    
@@ -58,22 +78,75 @@ module Antilaconia::Models
 end
 
 module Antilaconia::Controllers
+  class Login < R '/login'
+    def get
+      render :loginform
+    end
+    def post
+      # DEBUG ONLY
+      render :logingpost
+      #user = User.where(:username => @user)
+      #if user.password_valid?(@password)
+      #  # Valid password, put user ID in state.
+      #  @state['user_id'] = user.id
+      #else
+      #  # Invalid password, reset state.
+      #  @state = {}
+      #end
+      #redirect '/'
+    end
+  end
+  class Logout < R '/logout'
+    def get
+      @state = {}
+      redirect '/'
+    end
+  end
   class Index
     def get
-      @posts = Post.all
+      @posts = Post.all(:limit => 10, :order => 'created_at DESC')
       render :index
     end
   end
 end
 
 module Antilaconia::Views
+  def loginform
+    html do
+      head do
+        title 'Log in to Antilaconia'
+      end
+      body do
+        h1 'Log in'
+      end
+    end
+  end
+  def loginpost
+    # DEBUG ONLY
+  end
+
+
   def index
-    @posts.each do |post|
-      h1 post.title
-      div.content! { post.body }
+    html do 
+      head do 
+        title Antilaconia::Settings::PageTitle
+      end
+      body do 
+        h1 Antilaconia::Settings::PageHeading
+        @posts.each do |post|
+          div.entry do
+            if post.body.nil? or post.body == ''
+              div.text { p post.mtext }
+            else
+              div.text { p post.mtext }
+              blockquote.body { p post.body }
+            end
+            em { post.created_at }
+          end
+        end
+      end
     end
   end
 end
-
 ######################################################################
-Rack::Handler::CGI.run(Antilaconia) if __FILE__ == $0
+#Rack::Handler::CGI.run(Antilaconia) if __FILE__ == $0
