@@ -20,14 +20,24 @@
 ######################################################################
 
 require 'rubygems'
+gem     'activerecord'
 gem     'camping',     '>= 2.1'
 gem     'bcrypt-ruby', '>= 3.0'
+gem     'kramdown'
 
+require 'active_record'
 require 'camping'
 require 'camping/session'
 require 'bcrypt'
+require 'kramdown'
 
 Camping.goes :Antilaconia
+
+ActiveRecord::Base.establish_connection(
+  :adapter => 'sqlite3',
+  :database => Antilaconia::Settings::DatabaseFile,
+  :encoding => 'utf8'
+)
 
 module Antilaconia
   set :secret, Antilaconia::Settings::CampingSessionSecret
@@ -37,7 +47,7 @@ end
 module Antilaconia::Models
   class User < Base
     include BCrypt
-    has_many :posts
+    has_many :blogs
     validates_uniqueness_of :username
 
     def password
@@ -51,8 +61,11 @@ module Antilaconia::Models
       return (password == password_to_test)
     end
   end
+  class Blog < Base
+    belongs_to :owner, :class_name => User
+  end
   class Post < Base
-    belongs_to :user
+    belongs_to :blog
   end
   class BasicFields < V 1.0
     def self.up
@@ -60,16 +73,22 @@ module Antilaconia::Models
         t.string      :username,      :limit => 40
         t.string      :pwhash,        :limit => 100
       end
+      create_table Blog.table_name do |t|
+        t.references  :owner
+        t.string      :title,         :limit => 200
+        t.string      :pagetitle,     :limit => 200
+      end
       create_table Post.table_name do |t|
-        t.references  :user
+        t.references  :blog
         t.string      :mtext,         :limit => 140
         t.text        :body,
         t.timestamps
       end
     end    
     def self.down
-      drop_table User.table_name
       drop_table Post.table_name
+      drop_table Blog.table_name
+      drop_table User.table_name
     end
   end
   def Antilaconia.create
@@ -83,17 +102,23 @@ module Antilaconia::Controllers
       render :loginform
     end
     def post
-      # DEBUG ONLY
-      render :logingpost
-      #user = User.where(:username => @user)
-      #if user.password_valid?(@password)
-      #  # Valid password, put user ID in state.
-      #  @state['user_id'] = user.id
-      #else
-      #  # Invalid password, reset state.
-      #  @state = {}
-      #end
-      #redirect '/'
+      user = User.where(:username => @input['username']).first
+      if user.nil?
+        @state = {}
+        @error = 'Unknown username.'
+        redirect '/'
+        return
+      end
+      if user.password_valid?(@input['password'])
+        # Valid password, put user ID in state.
+        @state['user_id'] = user.id
+        @error = nil
+      else
+        # Invalid password, reset state.
+        @state = {}
+        @error = "Invalid password."
+      end
+      redirect '/'
     end
   end
   class Logout < R '/logout'
@@ -104,7 +129,14 @@ module Antilaconia::Controllers
   end
   class Index
     def get
-      @posts = Post.all(:limit => 10, :order => 'created_at DESC')
+      if @state.has_key?('user_id')
+        @user = User.find(@state['user_id'])
+      else
+        @user = nil
+      end
+      @blog = Blog.find(:first)
+      @posts = Post.where({:blog_id => @blog.id},
+                          :limit => 10, :order => 'created_at DESC')
       render :index
     end
   end
@@ -115,31 +147,70 @@ module Antilaconia::Views
     html do
       head do
         title 'Log in to Antilaconia'
+        meta(:name => 'robots', :content => 'noindex,nofollow')
       end
       body do
         h1 'Log in'
+        form(:action => Antilaconia::Settings::Approot+'/login',
+             :method => 'POST') do         
+          table do 
+            tr do
+              td do
+                text "Username"
+              end
+              td do
+                input :type => :text, :name => 'username'
+              end
+            end
+            tr do
+              td do
+                text "Password"
+              end
+              td do
+                input :type => :password, :name => 'password'
+              end
+            end
+          end
+          p do
+            input :type => :submit, :value => 'Log in'
+          end
+        end
       end
     end
   end
-  def loginpost
-    # DEBUG ONLY
-  end
-
 
   def index
     html do 
       head do 
-        title Antilaconia::Settings::PageTitle
+        title @blog.title
       end
       body do 
-        h1 Antilaconia::Settings::PageHeading
+        if not @error.nil?
+          p.error! @error
+        end
+        if @user.nil?
+          p do
+            text "Not logged in. "
+            a(:href => '/login', :rel => 'nofollow') do
+              text "Log in?"
+            end
+          end
+        else
+          p do
+            text "Welcome, #{@user.username}! "
+            a(:href => '/logout', :rel => 'nofollow') do
+              "Log out"
+            end
+          end
+        end
+        h1 @blog.pagetitle
         @posts.each do |post|
           div.entry do
             if post.body.nil? or post.body == ''
               div.text { p post.mtext }
             else
               div.text { p post.mtext }
-              blockquote.body { p post.body }
+              blockquote.body { text! Kramdown::Document.new(post.body).to_html }
             end
             em { post.created_at }
           end

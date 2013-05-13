@@ -10,10 +10,16 @@ to be kinda similar to StatusNet, except:
 The idea is that you can just install Ruby on a webhost, pull in a few gems,
 and stick this in as a CGI script.
 
+It also tries to bridge the gap between "microblogging" and "somewhat more
+featured microblogging shit" in that it lets you post text bodies with
+Markdown and such, while only cc'ing the "microblog" portion of the post
+to the microblog networks.
+
 **Note that the thing just doesn't work at the moment.** It creates the
-"data model", if it can be called that at the moment, and that's it.
-It's mostly copypaste from tutorial at the time. Needless to say,
-DON'T USE THIS. =)
+"data model", if it can be called that at the moment, and that's it. It
+lets you log in and log out. It shows you database entries if they
+actually are in the database. And that's it.
+Needless to say, DON'T USE THIS. =)
 
 ### Licence
 
@@ -23,7 +29,7 @@ This software is distributed under [GNU AGPL 3.0 or later](https://www.gnu.org/l
 
 Aside of Ruby 1.9.x, you need at least this:
 
-    # gem install camping bcrypt-ruby
+    # gem install camping bcrypt-ruby kramdown
 
 I'm developing this on SQLite storage engine. Can't vounch for
 anything else at all, but since this is built on top of Active Record,
@@ -38,15 +44,30 @@ settings. You may want to set up a link to your database manually.
 
     $ ln -s /wherever/lies/your/database.sqlite ~/.camping.db
 
-Set up the user account.
+Set up the user account and blog.
 
-    $ camping -C config.ru
-    ...
-    irb> u = Antilaconia::Models::User.new
-    irb> u.username = 'whoeveryouare'
-    irb> u.password = 'wHaTeV3rYouRpAssW0rD1s'
-    irb> u.save
-    irb> exit
+    Fire up shell:
+
+      $ camping -C config.ru
+
+    Create a new user:
+
+      irb> u = Antilaconia::Models::User.new
+      irb> u.username = 'whoeveryouare'
+      irb> u.password = 'wHaTeV3rYouRpAssW0rD1s'
+      irb> u.save
+
+    Create a new blog:
+
+      irb> b = Antilaconia::Models::Blog.new
+      irb> b.owner = u
+      irb> b.title = "Musings Most Morose"
+      irb> b.pagetitle = "Musings Most Morose"
+      irb> b.save
+
+    Done:
+
+      irb> exit
 
 You may now remove your link.
 
