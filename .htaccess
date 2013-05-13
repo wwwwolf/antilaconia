@@ -1,0 +1,13 @@
+# Block access to files other than antilaconia.cgi
+<Files ~ "(\.htaccess|config\.ru|antilaconia\.(rb|db)|COPYING\.txt|README\.mdwn)">
+    <Limit GET POST>
+	order deny,allow
+	deny from all
+    </Limit>
+</Files>
+
+# Handle antilaconia.cgi as a CGI script.
+Options +ExecCGI
+<Files "antilaconia.cgi">
+    SetHandler cgi-script
+</Files>
