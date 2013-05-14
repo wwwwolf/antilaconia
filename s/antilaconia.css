@@ -1,44 +1,31 @@
 /* Default CSS for Antilaconia. */
 
-#userbox {
-    font-size: smaller;
-    font-style: italic;
-    padding: 0.1em 0.2em 0.1em 0.5em;
-    border: thin solid black;
-    margin: 0.1em auto 0.1em auto;
-    width: 95%;
-}
-
 #pagetitle {
     text-align: center;
 }
-
 #postbox {
     width: 400px; height: 120px; margin-left: auto; margin-right: auto;
+    text-align: center;
+}
+#newpostcontainer {
     text-align: center;
 }
 #newpost {
     width: 380px; height: 100px; padding: 3px;
 }
 #charcount {
-    width: 290px; height: 20px; text-align: left; float:left;
-    vertical-align: top;
     font-size: 18px;
 }
 .goodcharcount { color: #0F0; }
 .badcharcount { color: #F00; }
 #postbutton {
-    width: 90px; height: 20px; text-align: right; float: right;
-    vertical-align: top;
     font-size: 18px;
 }
-hr#postdivider {
-    display: none;
-    clear: both;
-}
+
+
+
 
 .entry {
-    width: 500px;
     margin: 5px auto 60px auto;
     padding: 2px 2px 2px 2px;
 }

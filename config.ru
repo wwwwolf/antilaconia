@@ -16,4 +16,5 @@ end
 
 require './antilaconia.rb'
 
+use Rack::Static, :urls => ["/s"]
 run Antilaconia

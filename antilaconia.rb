@@ -34,10 +34,10 @@ require 'kramdown'
 Camping.goes :Antilaconia
 
 ActiveRecord::Base.establish_connection(
-  :adapter => 'sqlite3',
-  :database => Antilaconia::Settings::DatabaseFile,
-  :encoding => 'utf8'
-)
+                                        :adapter => 'sqlite3',
+                                        :database => Antilaconia::Settings::DatabaseFile,
+                                        :encoding => 'utf8'
+                                        )
 
 module Antilaconia
   set :secret, Antilaconia::Settings::CampingSessionSecret
@@ -121,6 +121,34 @@ module Antilaconia::Controllers
       redirect '/'
     end
   end
+  class NewPost < R '/new'
+    def post
+      unless @state.has_key?('user_id')
+        @state = {}
+        @error = "Must be logged in to post."
+        redirect '/'
+      end
+      user = User.find(@state['user_id'])
+      unless @input.has_key?('blog_id')
+        @error = "No blog id specified."
+        redirect '/'
+      end
+      blog = Blog.find(@input['blog_id'])
+      if blog.nil?
+        @error = "Invalid blog"
+        redirect '/'
+      end
+      if blog.owner != user
+        @error = "You don't own this blog"
+        redirect '/'
+      end
+      entry = Post.new
+      entry.blog = blog
+      entry.mtext = @input['newpost'].chomp.slice(0,140)
+      entry.save
+      redirect '/'
+    end
+  end
   class Logout < R '/logout'
     def get
       @state = {}
@@ -135,19 +163,38 @@ module Antilaconia::Controllers
         @user = nil
       end
       @blog = Blog.find(:first)
-      @posts = Post.where({:blog_id => @blog.id},
-                          :limit => 10, :order => 'created_at DESC')
+      @posts = Post.where({:blog_id => @blog.id}).limit(10).order('created_at DESC')
       render :index
     end
   end
 end
 
 module Antilaconia::Views
+  def common_head_tags
+    meta('http-equiv' => 'Content-Type',
+         :content => 'text/html;charset=UTF-8')
+    meta(:name => 'viewport',
+         :content => 'width=device-width, initial-scale=1.0')
+    script(:type => 'text/javascript',
+           :src => '/s/jquery-2.0.0.min.js')
+    script(:type => 'text/javascript',
+           :src => '/s/antilaconia.js')    
+    link(:rel => 'stylesheet',
+         :href => '/s/bootstrap/css/bootstrap.min.css',
+         :media => 'screen')
+    script(:type => 'text/javascript',
+           :src => '/s/bootstrap/js/bootstrap.min.js')
+    link(:rel => 'stylesheet',
+         :href => '/s/antilaconia.css', :type => 'text/css')
+  end
+
+
   def loginform
     html do
       head do
         title 'Log in to Antilaconia'
         meta(:name => 'robots', :content => 'noindex,nofollow')
+        common_head_tags
       end
       body do
         h1 'Log in'
@@ -179,45 +226,127 @@ module Antilaconia::Views
     end
   end
 
-  def index
-    html do 
-      head do 
-        title @blog.title
-      end
-      body do 
-        if not @error.nil?
-          p.error! @error
-        end
-        if @user.nil?
-          p do
-            text "Not logged in. "
-            a(:href => '/login', :rel => 'nofollow') do
-              text "Log in?"
+  def toolbar
+    div(:class => 'navbar navbar-inverse navbar-fixed-bottom') do
+      div(:class => 'navbar-inner') do
+        div(:class => 'container') do
+          a "Antilaconica", :class => 'brand', :href => '#'
+          div(:class => 'nav-collapse collapse') do
+            ul(:class => 'nav') do
+              if @user.nil?
+                li(:class => 'active') do
+                  a "Not logged in.", :href => '#'
+                end
+                li { a "Logout", :href => '/login', :rel => 'nofollow' }
+              else
+                li(:class => 'active') do
+                  a "Welcome, #{@user.username}!", :href => '#'
+                end
+                li { a "Logout", :href => '/logout', :rel => 'nofollow' }
+              end
             end
-          end
-        else
-          p do
-            text "Welcome, #{@user.username}! "
-            a(:href => '/logout', :rel => 'nofollow') do
-              "Log out"
-            end
-          end
-        end
-        h1 @blog.pagetitle
-        @posts.each do |post|
-          div.entry do
-            if post.body.nil? or post.body == ''
-              div.text { p post.mtext }
-            else
-              div.text { p post.mtext }
-              blockquote.body { text! Kramdown::Document.new(post.body).to_html }
-            end
-            em { post.created_at }
           end
         end
       end
     end
   end
+
+  def new_post_text_area
+    textarea :rows => 3, :cols => 50, :maxlength => 140,
+             :wrap => 'soft', :required => true,
+             :id => 'newpost', :name => 'newpost',
+             :placeholder => 'Enter your post...'
+  end
+
+  def new_post_form_layout
+    div.row do
+      div.span2 { } # Left empty area
+      div(:id => 'postbox', :class => 'span8') do
+    
+        div.row do
+          div.span8 do
+            div.row do
+              div.newpostcontainer!.span8 do
+                new_post_text_area
+              end
+            end
+    
+            div.row do
+              div.span6 do
+                p.charcount! { text! '&nbsp;' }
+              end
+              div.span2 do
+                div.postbutton! do
+                  input :type => :submit, :value => 'Post'
+                end
+              end
+            end            
+          end
+        end
+      end
+      div.span2 { } # Right empty area
+    end
+  end
+
+
+  def new_post_form
+    form(:action => '/new', :method => 'POST') do
+      input :type => :hidden, 
+            :name => 'blog_id',
+            :value => @blog.id
+      new_post_form_layout
+    end
+  end
+
+  def recent_posts
+    @posts.each do |post|
+      div.entry do
+        if post.body.nil? or post.body == ''
+          div.text { p post.mtext }
+        else
+          div.text { p post.mtext }
+          blockquote.body {text! Kramdown::Document.new(post.body).to_html}
+        end
+        p.timestamp { em { post.created_at } }
+      end
+    end
+  end
+
+  def index
+    html do 
+      head do 
+        title @blog.title
+        common_head_tags
+      end
+      body do
+        div.container do
+          #if not @error.nil?
+          #  p.error! @error
+          #end
+
+          h1.pagetitle! @blog.pagetitle
+
+          # Posting box.          
+          unless @user.nil?
+            new_post_form
+          end
+
+          # Blog content.
+          div.row do
+            div.span3 { }
+            div.span6 do
+              recent_posts
+            end
+            div.span3 { }
+          end
+          toolbar
+
+          # End of HTML.
+        end
+      end
+    end
+  end
 end
+
 ######################################################################
 #Rack::Handler::CGI.run(Antilaconia) if __FILE__ == $0
