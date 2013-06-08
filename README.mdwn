@@ -29,7 +29,10 @@ This software is distributed under [GNU AGPL 3.0 or later](https://www.gnu.org/l
 
 Aside of Ruby 1.9.x, you need at least this:
 
-    # gem install camping bcrypt-ruby kramdown
+    # gem install camping bcrypt-ruby kramdown twitter
+
+Also see [twitter gem instructions](http://sferik.github.io/twitter/) on how
+to properly install the Twitter gem.
 
 I'm developing this on SQLite storage engine. Can't vounch for
 anything else at all, but since this is built on top of Active Record,

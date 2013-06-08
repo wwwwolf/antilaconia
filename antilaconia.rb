@@ -34,10 +34,10 @@ require 'kramdown'
 Camping.goes :Antilaconia
 
 ActiveRecord::Base.establish_connection(
-                                        :adapter => 'sqlite3',
-                                        :database => Antilaconia::Settings::DatabaseFile,
-                                        :encoding => 'utf8'
-                                        )
+  :adapter => 'sqlite3',
+  :database => Antilaconia::Settings::DatabaseFile,
+  :encoding => 'utf8'
+)
 
 module Antilaconia
   set :secret, Antilaconia::Settings::CampingSessionSecret
@@ -149,6 +149,21 @@ module Antilaconia::Controllers
       redirect '/'
     end
   end
+  class ShowPost < R '/post/(\d+)'
+    def get
+      redirect '/'
+    end
+  end
+  class Tweet < R '/tweet/(\d+)'
+    def get
+      redirect '/'
+    end
+  end
+  class Delete < R '/delete/(\d+)'
+    def get
+      redirect '/'
+    end
+  end
   class Logout < R '/logout'
     def get
       @state = {}
@@ -237,12 +252,12 @@ module Antilaconia::Views
                 li(:class => 'active') do
                   a "Not logged in.", :href => '#'
                 end
-                li { a "Logout", :href => '/login', :rel => 'nofollow' }
+                li { a "Login", :href => R(Login), :rel => 'nofollow' }
               else
                 li(:class => 'active') do
                   a "Welcome, #{@user.username}!", :href => '#'
                 end
-                li { a "Logout", :href => '/logout', :rel => 'nofollow' }
+                li { a "Logout", :href => R(Logout), :rel => 'nofollow' }
               end
             end
           end
@@ -256,6 +271,11 @@ module Antilaconia::Views
              :wrap => 'soft', :required => true,
              :id => 'newpost', :name => 'newpost',
              :placeholder => 'Enter your post...'
+    #br
+    #textarea :rows => 5, :cols => 50,
+    #         :wrap => 'soft',
+    #         :id => 'newpostbody', :name => 'newpostbody',
+    #         :placeholder => 'More thoughts on this topic? (Markdown allowed)'
   end
 
   def new_post_form_layout
@@ -272,13 +292,16 @@ module Antilaconia::Views
             end
     
             div.row do
-              div.span6 do
-                p.charcount! { text! '&nbsp;' }
-              end
               div.span2 do
                 div.postbutton! do
-                  input :type => :submit, :value => 'Post'
+                  button(:type => :submit, :class => 'btn btn-mini',
+                         :title => 'Submit') do
+                    i(:class=>'icon-envelope') { }
+                  end
                 end
+              end
+              div.span6 do
+                p.charcount! { text! '&nbsp;' }
               end
             end            
           end
@@ -307,7 +330,44 @@ module Antilaconia::Views
           div.text { p post.mtext }
           blockquote.body {text! Kramdown::Document.new(post.body).to_html}
         end
-        p.timestamp { em { post.created_at } }
+
+        div.span6 do
+          div.row do
+            div.span3 do
+              if @user.nil?
+                div.postoperations { }
+              else
+                div.postoperations do
+                  div(:class => 'btn-toolbar') do
+                    div(:class => 'btn-group') do
+                      a(:class => 'btn btn-mini',
+                        :title => 'Delete',
+                        :href => R(Delete, post.id),
+                        :rel => 'nofollow') do
+                        i(:class => "icon-remove-sign ") { "" }
+                      end
+                      a(:class => 'btn btn-mini',
+                        :title => 'Tweet',
+                        :href => R(Tweet, post.id),
+                        :rel => 'nofollow') do
+                        i(:class => "icon-retweet ") { "" }
+                      end
+                    end # btn-group
+                  end # btn-toolbar
+                end # postoperations
+              end # if user...
+            end # postoperations span
+            div.span3 do
+              p.timestamp do
+                a(:href => R(ShowPost, post.id),
+                  :title => 'Permalink') do
+                  post.created_at
+                end
+              end
+            end # timestamp span
+          end
+        end
+
       end
     end
   end
@@ -339,7 +399,13 @@ module Antilaconia::Views
             end
             div.span3 { }
           end
-          toolbar
+          # Toolbar is shown if the user is logged in, or if the
+          # system is accessed with URL parameter ?toolbar=show
+          # (the default non-logged-in toolbar only shows the login link,
+          # however, so this is just for tidiness.)
+          if (not @user.nil?) or @input['toolbar'] == 'show' then
+            toolbar
+          end
 
           # End of HTML.
         end

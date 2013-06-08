@@ -4,22 +4,23 @@
     text-align: center;
 }
 #postbox {
-    width: 400px; height: 120px; margin-left: auto; margin-right: auto;
+    width: 400px; height: 200px; /* margin-left: auto; margin-right: auto;*/
     text-align: center;
 }
 #newpostcontainer {
     text-align: center;
 }
 #newpost {
-    width: 380px; height: 100px; padding: 3px;
+    width: 380px; height: 150px; padding: 3px;
 }
 #charcount {
+    text-align: right;
     font-size: 18px;
 }
 .goodcharcount { color: #0F0; }
 .badcharcount { color: #F00; }
 #postbutton {
-    font-size: 18px;
+    text-align: left;
 }
 
 
@@ -34,3 +35,8 @@
     text-align: right; font-size: smaller; font-style: italic;
     padding-right: 3em;
 }
+/* .postoperations {
+    color: #aaa;
+    text-align: left; font-size: smaller;
+    padding-left: 0em;
+} */

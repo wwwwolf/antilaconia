@@ -11,6 +11,13 @@ module Antilaconia
     CampingSessionSecret = 'Is this readable??? I do hope not.'
     # SQLite3 database where the stuff is stored.
     DatabaseFile = './antilaconia.db'
+
+    # Twitter settings, from your registered Twitter app.
+    # See Twitter Gem homepage (http://sferik.github.io/twitter/).
+    TwitterConsumerKey = ''
+    TwitterConsumerSecret = ''
+    TwitterOAuthToken = ''
+    TwitterOAuthTokenSecret = ''
   end
 end
 
