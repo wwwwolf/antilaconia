@@ -8,26 +8,18 @@
 }
 
 #newpostcontainer {
-    /* text-align: center; */
     width: auto;
 }
 #newpost {
     width: auto;
-    /* width: 380px; height: 150px; padding: 3px; */
 }
 #charcount {
-    /* text-align: right; */
-    /* font-size: 18px; */
 }
 .goodcharcount { color: #0a0; }
 .badcharcount { color: #a00; }
 #postbutton {
     text-align: left;
 }
-
-
-
-
 .entry {
     margin: 5px auto 60px auto;
     padding: 2px 2px 2px 2px;
@@ -37,8 +29,3 @@
     text-align: right; font-size: smaller; font-style: italic;
     padding-right: 3em;
 }
-/* .postoperations {
-    color: #aaa;
-    text-align: left; font-size: smaller;
-    padding-left: 0em;
-} */
