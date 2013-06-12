@@ -24,12 +24,14 @@ gem     'activerecord'
 gem     'camping',     '>= 2.1'
 gem     'bcrypt-ruby', '>= 3.0'
 gem     'kramdown'
+gem     'twitter'
 
 require 'active_record'
 require 'camping'
 require 'camping/session'
 require 'bcrypt'
 require 'kramdown'
+require 'twitter'
 
 Camping.goes :Antilaconia
 
@@ -38,6 +40,13 @@ ActiveRecord::Base.establish_connection(
   :database => Antilaconia::Settings::DatabaseFile,
   :encoding => 'utf8'
 )
+
+Twitter.configure do |config|
+  config.consumer_key = Antilaconia::Settings::TwitterConsumerKey
+  config.consumer_secret = Antilaconia::Settings::TwitterConsumerSecret
+  config.oauth_token = Antilaconia::Settings::TwitterOAuthToken
+  config.oauth_token_secret = Antilaconia::Settings::TwitterOAuthTokenSecret
+end
 
 module Antilaconia
   set :secret, Antilaconia::Settings::CampingSessionSecret
@@ -146,6 +155,9 @@ module Antilaconia::Controllers
       entry.blog = blog
       entry.mtext = @input['newpost'].chomp.slice(0,140)
       entry.save
+      if @input.has_key?('also_tweet') and @input['also_tweet']=='on'
+        Twitter.update(entry.mtext)
+      end
       redirect '/'
     end
   end
@@ -203,7 +215,6 @@ module Antilaconia::Views
          :href => '/s/antilaconia.css', :type => 'text/css')
   end
 
-
   def loginform
     html do
       head do
@@ -245,7 +256,7 @@ module Antilaconia::Views
     div(:class => 'navbar navbar-inverse navbar-fixed-bottom') do
       div(:class => 'navbar-inner') do
         div(:class => 'container') do
-          a "Antilaconica", :class => 'brand', :href => '#'
+          a "Antilaconia", :class => 'brand', :href => '#'
           div(:class => 'nav-collapse collapse') do
             ul(:class => 'nav') do
               if @user.nil?
