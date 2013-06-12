@@ -3,22 +3,24 @@
 #pagetitle {
     text-align: center;
 }
+
 #postbox {
-    width: 400px; height: 200px; /* margin-left: auto; margin-right: auto;*/
-    text-align: center;
 }
+
 #newpostcontainer {
-    text-align: center;
+    /* text-align: center; */
+    width: auto;
 }
 #newpost {
-    width: 380px; height: 150px; padding: 3px;
+    width: auto;
+    /* width: 380px; height: 150px; padding: 3px; */
 }
 #charcount {
-    text-align: right;
-    font-size: 18px;
+    /* text-align: right; */
+    /* font-size: 18px; */
 }
-.goodcharcount { color: #0F0; }
-.badcharcount { color: #F00; }
+.goodcharcount { color: #0a0; }
+.badcharcount { color: #a00; }
 #postbutton {
     text-align: left;
 }

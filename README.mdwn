@@ -40,10 +40,12 @@ other databases ought to work too.
 
 ### Installation
 
-Edit the config.ru file for pertinent, mostly self-explanatory settings.
+Copy `config.ru.example` to `config.ru`, then edit it for pertinent,
+mostly self-explanatory settings.
 
-For some reason, camping console doesn't want to read `config.ru`'s database
-settings. You may want to set up a link to your database manually.
+For some reason, Camping *console* doesn't want to read `config.ru`'s
+database settings, while the *actual Rack environment* does. You may
+want to set up a link to your database manually.
 
     $ ln -s /wherever/lies/your/database.sqlite ~/.camping.db
 
@@ -76,3 +78,11 @@ You may now remove your link.
 
     $ rm ~/.camping.db
 
+I'm going to assume you're insane and have access to Apache with CGI
+scripts and `mod_rewrite`. (As you may well know, `mod_rewrite` is
+required for True Craziness.)  You may want to take a look at
+`.htaccess` and the `antilaconia.cgi` scripts so that they point to
+the right things.
+
+Access your blog with `/login` to get the login form. Log in.
+Post some stuff.

@@ -7,7 +7,20 @@
 </Files>
 
 # Handle antilaconia.cgi as a CGI script.
-Options +ExecCGI
+Options +ExecCGI -Indexes
 <Files "antilaconia.cgi">
     SetHandler cgi-script
 </Files>
+
+# URL rewriting
+RewriteEngine On
+# If stick this to http://www.example.com/whatever/ublog,
+#      set this to                       /whatever/ublog
+RewriteBase /whatever/ublog
+
+# Basically do nothing for static files.
+RewriteRule ^s/(.*)$ s/$1 [L]
+# Handle index.
+RewriteRule ^$ antilaconia.cgi/ [L]
+# Handle everything else
+RewriteRule ^(login|new|post|tweet|delete|logout)(/.*)?$ antilaconia.cgi/$1$2 [L]

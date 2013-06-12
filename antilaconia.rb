@@ -150,17 +150,17 @@ module Antilaconia::Controllers
     end
   end
   class ShowPost < R '/post/(\d+)'
-    def get
+    def get(post_id)
       redirect '/'
     end
   end
   class Tweet < R '/tweet/(\d+)'
-    def get
+    def get(post_id)
       redirect '/'
     end
   end
   class Delete < R '/delete/(\d+)'
-    def get
+    def get(post_id)
       redirect '/'
     end
   end
@@ -266,54 +266,46 @@ module Antilaconia::Views
     end
   end
 
-  def new_post_text_area
-    textarea :rows => 3, :cols => 50, :maxlength => 140,
-             :wrap => 'soft', :required => true,
-             :id => 'newpost', :name => 'newpost',
-             :placeholder => 'Enter your post...'
-    #br
-    #textarea :rows => 5, :cols => 50,
-    #         :wrap => 'soft',
-    #         :id => 'newpostbody', :name => 'newpostbody',
-    #         :placeholder => 'More thoughts on this topic? (Markdown allowed)'
-  end
-
   def new_post_form_layout
     div.row do
-      div.span2 { } # Left empty area
+      div.span3 { } # Left empty area
       div(:id => 'postbox', :class => 'span8') do
-    
         div.row do
-          div.span8 do
+          div.span6 do
             div.row do
               div.newpostcontainer!.span8 do
-                new_post_text_area
-              end
-            end
-    
-            div.row do
-              div.span2 do
-                div.postbutton! do
+                fieldset do
+                  # legend("New post")
+                  label do
+                    text! "\u00B5blog message &ndash; "
+                    span.charcount! { text! '&nbsp;' }
+                  end
+                  textarea :rows => 3, :cols => 50, :maxlength => 140,
+                           :wrap => 'soft', :required => true,
+                           :id => 'newpost', :name => 'newpost',
+                           :placeholder => 'Enter your post...'
+                  label(:class => :checkbox) do
+                    input(:type => :checkbox, :name => 'also_tweet',
+                          :checked => true)
+                    text! "Tweet"
+                  end                  
                   button(:type => :submit, :class => 'btn btn-mini',
                          :title => 'Submit') do
                     i(:class=>'icon-envelope') { }
                   end
-                end
+                end                
               end
-              div.span6 do
-                p.charcount! { text! '&nbsp;' }
-              end
-            end            
+            end
           end
         end
       end
-      div.span2 { } # Right empty area
+      div.span3 { } # Right empty area
     end
   end
 
 
   def new_post_form
-    form(:action => '/new', :method => 'POST') do
+    form(:action => R(NewPost), :method => 'POST') do
       input :type => :hidden, 
             :name => 'blog_id',
             :value => @blog.id
@@ -407,11 +399,11 @@ module Antilaconia::Views
             toolbar
           end
 
-          # End of HTML.
-        end
-      end
-    end
+        end # div.container for the page
+      end # body
+    end # html
   end
+
 end
 
 ######################################################################
