@@ -278,12 +278,12 @@ module Antilaconia::Views
   end
 
   def new_post_form_layout
-    div.row do
+    div(:class => 'row-fluid') do
       div.span3 { } # Left empty area
       div(:id => 'postbox', :class => 'span8') do
-        div.row do
+        div(:class => 'row-fluid') do
           div.span6 do
-            div.row do
+            div(:class => 'row-fluid') do
               div.newpostcontainer!.span8 do
                 fieldset do
                   # legend("New post")
@@ -334,9 +334,9 @@ module Antilaconia::Views
           blockquote.body {text! Kramdown::Document.new(post.body).to_html}
         end
 
-        div.span6 do
-          div.row do
-            div.span3 do
+        div.span12 do
+          div(:class => 'row-fluid') do
+            div.span6 do
               if @user.nil?
                 div.postoperations { }
               else
@@ -360,7 +360,7 @@ module Antilaconia::Views
                 end # postoperations
               end # if user...
             end # postoperations span
-            div.span3 do
+            div.span6 do
               p.timestamp do
                 a(:href => R(ShowPost, post.id),
                   :title => 'Permalink') do
@@ -382,7 +382,7 @@ module Antilaconia::Views
         common_head_tags
       end
       body do
-        div.container do
+        div(:class => 'container-fluid') do
           #if not @error.nil?
           #  p.error! @error
           #end
@@ -395,7 +395,7 @@ module Antilaconia::Views
           end
 
           # Blog content.
-          div.row do
+          div(:class => 'row-fluid') do
             div.span3 { }
             div.span6 do
               recent_posts
