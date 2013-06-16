@@ -15,11 +15,15 @@ featured microblogging shit" in that it lets you post text bodies with
 Markdown and such, while only cc'ing the "microblog" portion of the post
 to the microblog networks.
 
-**Note that the thing just doesn't work at the moment.** It creates the
-"data model", if it can be called that at the moment, and that's it. It
-lets you log in and log out. It shows you database entries if they
-actually are in the database. And that's it.
-Needless to say, DON'T USE THIS. =)
+**Note that the thing just doesn't have all of the features at the
+moment.** It creates the "data model", if it can be called that at
+the moment, lets you log in and log out, lets you post entries to
+your blog and send them to Twitter. Configuration and installation
+**may** be colossally painful and may need some expertise with
+Ruby, Rack and Apache (particularly .htaccess skills and
+`mod_rewrite`). **Use entirely at your own risk.** I do use it
+for "production use", for whatever it's worth, so it *might
+not* break crazily in the near future.
 
 ### Licence
 
