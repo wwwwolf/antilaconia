@@ -114,42 +114,54 @@ module Antilaconia::Controllers
       user = User.where(:username => @input['username']).first
       if user.nil?
         @state = {}
-        @error = 'Unknown username.'
-        redirect '/'
+        @state['error'] = 'Unknown username.'
+        redirect R(Index)
         return
       end
       if user.password_valid?(@input['password'])
         # Valid password, put user ID in state.
         @state['user_id'] = user.id
-        @error = nil
+        @state.delete('error')
       else
         # Invalid password, reset state.
         @state = {}
-        @error = "Invalid password."
+        @state['error'] = "Invalid password."
       end
-      redirect '/'
+      redirect R(Index)
     end
   end
   class NewPost < R '/new'
+    # GET method will just show a form for new posts, or if the user has
+    # logged out or the session has expired, will redirect to login.
+    def get
+      unless @state.has_key?('user_id')
+        redirect R(Login)
+        return
+      end
+      @user = User.find(@state['user_id'])
+      @blog = Blog.find(:first)
+      render :new_post_page
+    end
+    # POST is used to actually post the new entry.
     def post
       unless @state.has_key?('user_id')
         @state = {}
-        @error = "Must be logged in to post."
-        redirect '/'
+        @state['error'] = "Must be logged in to post."
+        redirect R(Index)
       end
       user = User.find(@state['user_id'])
       unless @input.has_key?('blog_id')
-        @error = "No blog id specified."
-        redirect '/'
+        @state['error'] = "No blog id specified."
+        redirect R(Index)
       end
       blog = Blog.find(@input['blog_id'])
       if blog.nil?
-        @error = "Invalid blog"
-        redirect '/'
+        @state['error'] = "Invalid blog"
+        redirect R(Index)
       end
       if blog.owner != user
-        @error = "You don't own this blog"
-        redirect '/'
+        @state['error'] = "You don't own this blog"
+        redirect R(Index)
       end
       entry = Post.new
       entry.blog = blog
@@ -158,28 +170,28 @@ module Antilaconia::Controllers
       if @input.has_key?('also_tweet') and @input['also_tweet']=='on'
         Twitter.update(entry.mtext)
       end
-      redirect '/'
+      redirect R(Index)
     end
   end
   class ShowPost < R '/post/(\d+)'
     def get(post_id)
-      redirect '/'
+      redirect R(Index)
     end
   end
   class Tweet < R '/tweet/(\d+)'
     def get(post_id)
-      redirect '/'
+      redirect R(Index)
     end
   end
   class Delete < R '/delete/(\d+)'
     def get(post_id)
-      redirect '/'
+      redirect R(Index)
     end
   end
   class Logout < R '/logout'
     def get
       @state = {}
-      redirect '/'
+      redirect R(Index)
     end
   end
   class Index
@@ -222,35 +234,47 @@ module Antilaconia::Views
         meta(:name => 'robots', :content => 'noindex,nofollow')
         common_head_tags
       end
-      body do
-        h1 'Log in'
-        form(:action => Antilaconia::Settings::Approot+'/login',
-             :method => 'POST') do         
-          table do 
-            tr do
-              td do
-                text "Username"
-              end
-              td do
-                input :type => :text, :name => 'username'
-              end
-            end
-            tr do
-              td do
-                text "Password"
-              end
-              td do
-                input :type => :password, :name => 'password'
-              end
-            end
+      body.loginpage! do
+        form(:action => R(Login),
+             :method => 'POST',
+             :class => 'form-signin') do
+          h2(:class=> 'form-signin-heading') do
+            "Log in"
           end
-          p do
-            input :type => :submit, :value => 'Log in'
+          input(:type => :text,
+                :name => 'username',
+                :class => 'input-block-level',
+                :placeholder => 'Username')
+          input(:type => :password,
+                :name => 'password',
+                :class => 'input-block-level',
+                :placeholder => 'Password')
+          button(:class => 'btn btn-large btn-primary',
+                 :type => :submit) do
+            "Log in"
           end
         end
       end
     end
   end
+
+  def new_post_page
+    html do
+      head do
+        title 'New post'
+        meta(:name => 'robots', :content => 'noindex,nofollow')
+        common_head_tags
+      end
+      body do
+        div(:class => 'container-fluid') do
+          h1(:style => 'text-align: center') { "New post" }
+          new_post_form
+          toolbar
+        end
+      end
+    end
+  end
+
 
   def toolbar
     div(:class => 'navbar navbar-inverse navbar-fixed-bottom') do
@@ -295,14 +319,20 @@ module Antilaconia::Views
                            :wrap => 'soft', :required => true,
                            :id => 'newpost', :name => 'newpost',
                            :placeholder => 'Enter your post...'
-                  label(:class => :checkbox) do
-                    input(:type => :checkbox, :name => 'also_tweet',
-                          :checked => true)
-                    text! "Tweet"
-                  end                  
-                  button(:type => :submit, :class => 'btn btn-mini',
-                         :title => 'Submit') do
-                    i(:class=>'icon-envelope') { }
+                  div(:class => 'row-fluid', :style=> 'text-align: left;') do
+                    div(:class => 'span6') do
+                      label(:class => :checkbox) do
+                        input(:type => :checkbox, :name => 'also_tweet',
+                              :checked => true)
+                        text! "Tweet"
+                      end
+                    end
+                    div(:class => 'span6', :style=> 'text-align: right;') do
+                      button(:type => :submit, :class => 'btn btn-mini',
+                             :title => 'Submit') do
+                        i(:class=>'icon-envelope') { }
+                      end
+                    end
                   end
                 end                
               end
