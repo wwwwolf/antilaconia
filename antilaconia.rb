@@ -53,6 +53,40 @@ module Antilaconia
   include Camping::Session
 end
 
+module Antilaconia::Helpers
+  def perform_post(uid,blogid,mtext,body,tweet)
+    if uid.nil?
+      r(401, 'Must be logged in to post.')
+      throw :halt
+    end
+    user = User.find(uid)
+    if user.nil?
+      r(401, 'Invalid user ID.')
+      throw :halt
+    end
+    if blogid.nil?
+      r(400, 'Blog ID missing from parameters.')
+      throw :halt
+    end
+    blog = Blog.find(blogid)
+    if blog.nil?
+      r(400, 'Invalid blog ID.')
+      throw :halt
+    end
+    if blog.owner != user
+      r(403, 'User not authorised to post on specified blog.')
+      throw :halt
+    end
+    entry = Post.new
+    entry.blog = blog
+    entry.mtext = mtext.chomp.slice(0,140)
+    entry.save
+    if tweet
+      Twitter.update(entry.mtext)
+    end
+  end
+end
+
 module Antilaconia::Models
   class User < Base
     include BCrypt
@@ -143,32 +177,12 @@ module Antilaconia::Controllers
     end
     # POST is used to actually post the new entry.
     def post
-      unless @state.has_key?('user_id')
-        @state = {}
-        r(401, 'Must be logged in to post.')
-        return
-      end
-      user = User.find(@state['user_id'])
-      unless @input.has_key?('blog_id')
-        r(403, 'Blog ID missing from parameters.')
-        return
-      end
-      blog = Blog.find(@input['blog_id'])
-      if blog.nil?
-        r(403, 'Invalid blog ID.')
-        return
-      end
-      if blog.owner != user
-        r(403, 'Not authorised to post on specified blog.')
-        return
-      end
-      entry = Post.new
-      entry.blog = blog
-      entry.mtext = @input['newpost'].chomp.slice(0,140)
-      entry.save
-      if @input.has_key?('also_tweet') and @input['also_tweet']=='on'
-        Twitter.update(entry.mtext)
-      end
+      uid = @state['user_id']
+      blogid = @input['blog_id']
+      mtext = @input['newpost']
+      tweet = (@input.has_key?('also_tweet') and @input['also_tweet']=='on')
+      perform_post(uid,blogid,mtext,nil,tweet)
+
       redirect R(Index)
     end
   end
