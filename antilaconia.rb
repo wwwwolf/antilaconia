@@ -114,18 +114,17 @@ module Antilaconia::Controllers
       user = User.where(:username => @input['username']).first
       if user.nil?
         @state = {}
-        @state['error'] = 'Unknown username.'
-        redirect R(Index)
+        r(401, 'Invalid username or password.')
         return
       end
       if user.password_valid?(@input['password'])
         # Valid password, put user ID in state.
         @state['user_id'] = user.id
-        @state.delete('error')
       else
         # Invalid password, reset state.
         @state = {}
-        @state['error'] = "Invalid password."
+        r(401, 'Invalid username or password.')
+        return
       end
       redirect R(Index)
     end
@@ -146,22 +145,22 @@ module Antilaconia::Controllers
     def post
       unless @state.has_key?('user_id')
         @state = {}
-        @state['error'] = "Must be logged in to post."
-        redirect R(Index)
+        r(401, 'Must be logged in to post.')
+        return
       end
       user = User.find(@state['user_id'])
       unless @input.has_key?('blog_id')
-        @state['error'] = "No blog id specified."
-        redirect R(Index)
+        r(403, 'Blog ID missing from parameters.')
+        return
       end
       blog = Blog.find(@input['blog_id'])
       if blog.nil?
-        @state['error'] = "Invalid blog"
-        redirect R(Index)
+        r(403, 'Invalid blog ID.')
+        return
       end
       if blog.owner != user
-        @state['error'] = "You don't own this blog"
-        redirect R(Index)
+        r(403, 'Not authorised to post on specified blog.')
+        return
       end
       entry = Post.new
       entry.blog = blog
