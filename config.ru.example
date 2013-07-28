@@ -12,11 +12,17 @@ module Antilaconia
     # SQLite3 database where the stuff is stored.
     DatabaseFile = './antilaconia.db'
 
-    # Twitter settings, from your registered Twitter app.
-    # See Twitter Gem homepage (http://sferik.github.io/twitter/).
-    TwitterConsumerKey = ''
-    TwitterConsumerSecret = ''
-    TwitterOAuthToken = ''
+    # Set to "true" only if you have configured the Twitter settings
+    # below.
+    Twitter = false
+    # Twitter settings. Consumer information is from your registered
+    # Twitter app, and your OAuth token comes from your personal 
+    # app permissions.
+    # See Twitter Gem homepage (http://sferik.github.io/twitter/)
+    # for application setup instructions.
+    TwitterConsumerKey      = ''
+    TwitterConsumerSecret   = ''
+    TwitterOAuthToken       = ''
     TwitterOAuthTokenSecret = ''
   end
 end

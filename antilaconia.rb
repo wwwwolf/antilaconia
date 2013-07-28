@@ -25,8 +25,11 @@ gem     'camping',     '>= 2.1'
 gem     'bcrypt-ruby', '>= 3.0'
 gem     'kramdown'
 gem     'twitter'
+gem     'activesupport'
 
 require 'active_record'
+require 'active_support'
+require 'active_support/json'
 require 'camping'
 require 'camping/session'
 require 'bcrypt'
@@ -41,11 +44,13 @@ ActiveRecord::Base.establish_connection(
   :encoding => 'utf8'
 )
 
-Twitter.configure do |config|
-  config.consumer_key = Antilaconia::Settings::TwitterConsumerKey
-  config.consumer_secret = Antilaconia::Settings::TwitterConsumerSecret
-  config.oauth_token = Antilaconia::Settings::TwitterOAuthToken
-  config.oauth_token_secret = Antilaconia::Settings::TwitterOAuthTokenSecret
+if Antilaconia::Settings::Twitter
+  Twitter.configure do |config|
+    config.consumer_key = Antilaconia::Settings::TwitterConsumerKey
+    config.consumer_secret = Antilaconia::Settings::TwitterConsumerSecret
+    config.oauth_token = Antilaconia::Settings::TwitterOAuthToken
+    config.oauth_token_secret = Antilaconia::Settings::TwitterOAuthTokenSecret
+  end
 end
 
 module Antilaconia
@@ -54,6 +59,15 @@ module Antilaconia
 end
 
 module Antilaconia::Helpers
+  # Will return user object for the specified username if the password
+  # is valid, otherwise will return nil.
+  def authenticate(username,password)
+    user = User.where(:username => username).first
+    return nil  if user.nil?
+    return user if user.password_valid?(password)
+    return nil
+  end
+  # Post an entry.
   def perform_post(uid,blogid,mtext,body,tweet)
     if uid.nil?
       r(401, 'Must be logged in to post.')
@@ -145,21 +159,13 @@ module Antilaconia::Controllers
       render :loginform
     end
     def post
-      user = User.where(:username => @input['username']).first
+      user = authenticate(@input['username'],@input['password'])
       if user.nil?
         @state = {}
         r(401, 'Invalid username or password.')
         return
       end
-      if user.password_valid?(@input['password'])
-        # Valid password, put user ID in state.
-        @state['user_id'] = user.id
-      else
-        # Invalid password, reset state.
-        @state = {}
-        r(401, 'Invalid username or password.')
-        return
-      end
+      @state['user_id'] = user.id
       redirect R(Index)
     end
   end
@@ -177,13 +183,52 @@ module Antilaconia::Controllers
     end
     # POST is used to actually post the new entry.
     def post
-      uid = @state['user_id']
-      blogid = @input['blog_id']
-      mtext = @input['newpost']
-      tweet = (@input.has_key?('also_tweet') and @input['also_tweet']=='on')
-      perform_post(uid,blogid,mtext,nil,tweet)
+      if @input.has_key?('client')
+        # Posting via client. Will not look at the state cookie
+        # at all, but will perform an in-place authentication.
 
-      redirect R(Index)
+        # Response will be given in JSON format.
+        @headers['Content-Type'] = "application/json"
+
+        user = authenticate(@input['username'],@input['password'])
+        if user.nil?
+          @status = 401
+          result = {
+            :error => 'Invalid username or password.'
+          }
+          return result.to_json
+        end
+
+        uid = user.id
+        blogid = @input['blog_id']
+        mtext = @input['newpost']
+        if Antilaconia::Settings::Twitter
+          tweet = (@input.has_key?('also_tweet') and @input['also_tweet']=='on')
+        else
+          tweet = false
+        end
+        perform_post(uid,blogid,mtext,nil,tweet)
+        @status = 200
+        result = {
+          :error => 'Message posted.',
+          :message => mtext,
+          :tweet => tweet
+        }
+        return result.to_json
+      else
+        # Posting via web. Will store the thingy and
+        # redirect to index.
+        uid = @state['user_id']
+        blogid = @input['blog_id']
+        mtext = @input['newpost']
+        if Antilaconia::Settings::Twitter
+          tweet = (@input.has_key?('also_tweet') and @input['also_tweet']=='on')
+        else
+          tweet = false
+        end
+        perform_post(uid,blogid,mtext,nil,tweet)
+        redirect R(Index)
+      end
     end
   end
   class ShowPost < R '/post/(\d+)'
@@ -334,10 +379,18 @@ module Antilaconia::Views
                            :placeholder => 'Enter your post...'
                   div(:class => 'row-fluid', :style=> 'text-align: left;') do
                     div(:class => 'span6') do
-                      label(:class => :checkbox) do
-                        input(:type => :checkbox, :name => 'also_tweet',
-                              :checked => true)
-                        text! "Tweet"
+                      if Antilaconia::Settings::Twitter
+                        label(:class => :checkbox) do
+                          input(:type => :checkbox, :name => 'also_tweet',
+                                :checked => true)
+                          text! "Tweet"
+                        end
+                      else
+                        label(:class => :checkbox) do
+                          input(:type => :checkbox, :name => 'also_tweet',
+                                :checked => false, :disabled => true)
+                          text! "Tweet"
+                        end
                       end
                     end
                     div(:class => 'span6', :style=> 'text-align: right;') do
@@ -392,11 +445,13 @@ module Antilaconia::Views
                         :rel => 'nofollow') do
                         i(:class => "icon-remove-sign ") { "" }
                       end
-                      a(:class => 'btn btn-mini',
-                        :title => 'Tweet',
-                        :href => R(Tweet, post.id),
-                        :rel => 'nofollow') do
-                        i(:class => "icon-retweet ") { "" }
+                      if Antilaconia::Settings::Twitter
+                        a(:class => 'btn btn-mini',
+                          :title => 'Tweet',
+                          :href => R(Tweet, post.id),
+                          :rel => 'nofollow') do
+                          i(:class => "icon-retweet ") { "" }
+                        end
                       end
                     end # btn-group
                   end # btn-toolbar
