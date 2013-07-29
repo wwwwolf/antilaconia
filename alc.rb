@@ -28,7 +28,7 @@ require 'uri'
 
 ALC_VERSION = '0.1'
 SETTINGS_FILE = "#{ENV['HOME']}/.antilaconiaclient"
-USER_AGENT = "AntiLaconiaClient/#{ALC_VERSION} "+
+USER_AGENT = "AntilaconiaClient/#{ALC_VERSION} "+
   "(#{RUBY_PLATFORM}; Ruby/#{RUBY_VERSION})"
 @blogs = {}
 
@@ -39,7 +39,7 @@ def create_barebones_settings_file
     store['blogs'] = {
       'default' => {
         'api' => 'http://example.net/ublog',
-        'user' => '??',
+        'username' => '??',
         'password' => '??',
         'blog_id' => 1,
         'tweet_by_default' => true
@@ -57,8 +57,10 @@ def read_settings
 end
 
 blog = "default"
-tweet = false
+tweet = nil
 message = ""
+verbose = false
+dryrun = false
 ARGV.options do |opts|
   script_name = File.basename($0)
   opts.banner = "Usage: #{script_name} [options] Message"
@@ -70,10 +72,14 @@ ARGV.options do |opts|
           "Default: 'default'") { |x| blog = x }
   opts.on("-t", "--tweet",
           "Also tweet.",
-          "Default: per blog settings.") { tweet = true }
+          "Default: per blog settings.")   { tweet = true }
   opts.on("-T", "--no-tweet",
           "Don't tweet.",
-          "Default: per blog settings.") { tweet = false }
+          "Default: per blog settings.")   { tweet = false }
+  opts.on("-v", "--verbose",
+          "Print additional information.") { verbose = true }
+  opts.on("-k", "--dry-run",
+          "Don't actually post.")          { dryrun = true }
   opts.separator ""
   opts.on("-C", "--create-settings-file",
           "Create barebones settings file.") do
@@ -89,12 +95,56 @@ ARGV.options do |opts|
   if ARGV.length != 1
     puts opts; exit
   end
-  message = ARGV.pop
+  message = ARGV.pop.dup
 end
 message.chomp!
-if message.length <= 0
-  fail "No message."
+read_settings
+
+fail "No message."           if message.length <= 0
+fail "Message too long."     if message.length > 140
+fail "Blog #{blog} unknown." unless @blogs.has_key?(blog)
+
+api      = URI.parse(@blogs[blog]['api'] + '/new')
+username = @blogs[blog]['username']
+password = @blogs[blog]['password']
+blog_id  = @blogs[blog]['blog_id']
+tweet    = @blogs[blog]['tweet_by_default'] if tweet.nil? # honour cli opts
+
+if verbose
+  puts "Message  : #{message}"
+  puts "API      : #{api}"
+  puts "User     : #{username}"
+  puts "Password : #{'*' * password.length}"
+  puts "Blog ID  : #{blog_id}"
+  puts "Tweet    : #{tweet}"
 end
-if message.length > 140
-  fail "Message too long."
+
+exit if dryrun
+
+f = {
+  'client' => 'AntilaconiaClient',
+  'username' => username,
+  'password' => password,
+  'blog_id' => blog_id,
+  'newpost' => message
+}
+f['also_tweet'] = 'on' if tweet
+
+request = Net::HTTP::Post.new(api.path)
+request.set_form_data(f)
+request['User-Agent'] = USER_AGENT
+response = Net::HTTP.start(api.host, api.port) do |http|
+  http.request(request)
+end
+
+if response.code == "200"
+  puts "Message posted successfully."
+else
+  begin
+    r = JSON.parse(response.body)
+    puts "Error (HTTP #{response.code} #{response.message}): #{r['error']}"
+  rescue JSON::ParserError
+    puts "Error (HTTP #{response.code} #{response.message}) - "+
+      "additionally unable to parse server response!"
+  end
 end
