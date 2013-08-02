@@ -19,48 +19,19 @@
 #
 ######################################################################
 
+$: << File.dirname(File.symlink?($0) ?
+                   File.readlink($0) :
+                   $0)
+require 'antilaconia_clientlib'
+
 require 'optparse'
-require 'json'
-require 'yaml'
-require 'yaml/store'
-require 'net/http'
-require 'uri'
-
-ALC_VERSION = '0.1'
-SETTINGS_FILE = "#{ENV['HOME']}/.antilaconiaclient"
-USER_AGENT = "AntilaconiaClient/#{ALC_VERSION} "+
-  "(#{RUBY_PLATFORM}; Ruby/#{RUBY_VERSION})"
-@blogs = {}
-
-def create_barebones_settings_file
-  File.delete(SETTINGS_FILE) if File.exists?(SETTINGS_FILE)
-  store = YAML::Store.new(SETTINGS_FILE)
-  store.transaction do
-    store['blogs'] = {
-      'default' => {
-        'api' => 'http://example.net/ublog',
-        'username' => '??',
-        'password' => '??',
-        'blog_id' => 1,
-        'tweet_by_default' => true
-      }
-    }
-  end
-  File.chmod(0600,SETTINGS_FILE)
-end
-def read_settings
-  @blogs = {}
-  store = YAML::Store.new(SETTINGS_FILE)
-  store.transaction do
-    @blogs = store['blogs']
-  end
-end
 
 blog = "default"
 tweet = nil
 message = ""
 verbose = false
 dryrun = false
+
 ARGV.options do |opts|
   script_name = File.basename($0)
   opts.banner = "Usage: #{script_name} [options] Message"
@@ -83,7 +54,7 @@ ARGV.options do |opts|
   opts.separator ""
   opts.on("-C", "--create-settings-file",
           "Create barebones settings file.") do
-    create_barebones_settings_file
+    AntilaconiaClient.create_barebones_settings_file
     exit
   end
   opts.on("-h", "--help",
@@ -98,53 +69,15 @@ ARGV.options do |opts|
   message = ARGV.pop.dup
 end
 message.chomp!
-read_settings
-
-fail "No message."           if message.length <= 0
-fail "Message too long."     if message.length > 140
-fail "Blog #{blog} unknown." unless @blogs.has_key?(blog)
-
-api      = URI.parse(@blogs[blog]['api'] + '/new')
-username = @blogs[blog]['username']
-password = @blogs[blog]['password']
-blog_id  = @blogs[blog]['blog_id']
-tweet    = @blogs[blog]['tweet_by_default'] if tweet.nil? # honour cli opts
-
-if verbose
-  puts "Message  : #{message}"
-  puts "API      : #{api}"
-  puts "User     : #{username}"
-  puts "Password : #{'*' * password.length}"
-  puts "Blog ID  : #{blog_id}"
-  puts "Tweet    : #{tweet}"
-end
 
 exit if dryrun
 
-f = {
-  'client' => 'AntilaconiaClient',
-  'username' => username,
-  'password' => password,
-  'blog_id' => blog_id,
-  'newpost' => message
-}
-f['also_tweet'] = 'on' if tweet
-
-request = Net::HTTP::Post.new(api.path)
-request.set_form_data(f)
-request['User-Agent'] = USER_AGENT
-response = Net::HTTP.start(api.host, api.port) do |http|
-  http.request(request)
-end
-
-if response.code == "200"
+client = AntilaconiaClient.new
+response = client.post(blog,message,tweet)
+if response[:status] == :success
   puts "Message posted successfully."
 else
-  begin
-    r = JSON.parse(response.body)
-    puts "Error (HTTP #{response.code} #{response.message}): #{r['error']}"
-  rescue JSON::ParserError
-    puts "Error (HTTP #{response.code} #{response.message}) - "+
-      "additionally unable to parse server response!"
-  end
+  fail "Error (HTTP #{response[:response_code]} "+
+    "#{response[:response_message]}): "+
+    "#{response[:error]}"
 end
