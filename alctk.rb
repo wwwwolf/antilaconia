@@ -26,3 +26,32 @@ require 'antilaconia_clientlib'
 
 require 'tk'
 
+client = AntilaconiaClient.new
+
+# Take a list of available blogs, but put 'default' as the first item.
+# To wit, add 'default' as an option, then add everything else but 'default'.
+blogs = ['default'] + client.blogs.keys.select { |x| x != 'default' }
+
+root = TkRoot.new { title "Antilaconia" }
+
+blogchoice = TkFrame.new(root)
+TkLabel.new(blogchoice) { text 'Post to:' }.pack('side' => 'left')
+combobox = TkCombobox.new(blogchoice)
+combobox.values = blogs
+combobox.pack('side' => 'right', 'fill' => 'x')
+
+
+message = TkText.new(root) { width 80; height 3; }
+
+bottom = TkFrame.new(root)
+chars_left = TkMessage.new(bottom) { text "Characters left: 140" }
+chars_left.pack('side' => 'left', 'fill' => 'x')
+postbutton = TkButton.new(bottom) { text "Post" }
+postbutton.pack('side' => 'right')
+
+blogchoice.pack('side' => 'top', 'fill' => 'x')
+message.pack('side' => 'left', 'fill' => 'both')
+bottom.pack('side' => 'bottom', 'fill' => 'x')
+
+
+Tk.mainloop
